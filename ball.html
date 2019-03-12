@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<!-- <meta charset="UTF-8"> -->
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
+	<title>Document</title>
+	<style>
+		html,body{
+			padding:0;
+			margin: 0;
+			width: 100%;
+			height: 100%;
+			overflow:hidden; 
+		}
+		#div{
+			position: relative;
+		}
+		#ball{
+			position: absolute;
+			top:0;
+			left:0;
+			z-index: 99;
+		}
+		#myCanvas{
+			position: absolute;
+			background: linear-gradient(30deg,#c5ebfe,#a8e1ff);
+		}
+		#grade{
+			position: absolute;
+			top:50px;
+			left:50%;
+			margin-left: -40px;
+			background-color:rgba(0,0,0,0.5);
+			width: 80px;
+			height:30px;
+			border-radius:15px;
+			border:2px solid #cccc00;
+			font-size: 20px;
+			text-align:center;
+			line-height: 30px;
+			color:#fff;
+			display: none;
+		}
+		#again{
+			position: absolute;
+			top:50%;
+			left:50%;
+			margin-left: -100px;
+			margin-top: -100px;
+			background-color:rgba(255,255,255,0.9);
+			width: 200px;
+			height:200px;
+			border-radius:15px;
+			border:2px solid #cccc00;
+			font-size: 40px;
+			text-align:center;
+			line-height: 30px;
+			color:#555;
+			z-index: 999;
+			display: none;
+		}
+		button{
+			padding:6px 30px;
+			background-color: #ed5d53;
+			border:0 none;
+			outline: 0 none;
+			border-radius: 30px;
+			font-size: 16px;
+			color:#fff;
+
+		}
+	</style>
+
+</head>
+<body>
+
+	<div id="div">
+		<canvas id="myCanvas" ></canvas>
+		<canvas id="star" ></canvas>
+		<canvas id="ball" ></canvas>
+		<div id="grade"></div>
+		<div id="again">
+			<p style="font-size: 12px;">本次得分</p>
+			<p style="margin:0px; color:#ed5d53;"><span id="grades">12 </span> <span style="font-size: 12px; color: #555;"> 分</span></p>
+			<p>   
+				<button id="clickButton">再来一次</button>
+			</p>
+		</div>
+	</div>
+
+	<script>
+		//页面加载后
+		var Chick;
+		window.onload = function () {
+			// init();
+
+		//初始化配置
+		// var init = function(){
+  			
+			var div = document.getElementById('div');
+			var canvas = document.getElementById('myCanvas');
+			var balls = document.getElementById('ball');
+			var myStar = document.getElementById('star');
+
+			var ctx = canvas.getContext('2d');
+			var ball = balls.getContext('2d');
+			var stars = myStar.getContext('2d');
+
+			div.width = myStar.width = balls.width = canvas.width = window.innerWidth;
+			div.height = myStar.height = balls.height = canvas.height = window.innerHeight;
+			// 背景图
+			var imgs = new Image();
+			imgs.src = "./img/bg1.jpg";
+			imgs.onload = function () {
+		      	ctx.drawImage(imgs,0,0,canvas.width,canvas.height);
+		    };
+
+		   var rubberBall;
+		   
+
+		   var images = new Image();
+			images.src = "./img/ball.png";
+			images.onload = function () {
+				rubberBall = new Rubber_ball(ball,balls.width/2,balls.height/1.4,1,40,balls.width,balls.height,images); 
+		    };
+
+
+		   var clickButton = document.getElementById('clickButton');
+
+		   clickButton.addEventListener('click',function(){
+		   		rubberBall = new Rubber_ball(ball,balls.width/2,balls.height/1.4,1,40,balls.width,balls.height,images);
+		   		runBall.num = 0 ;
+		   		runBall.render(runBall.num);
+		   		runBall = null;
+		   		again.style.display='none';
+		   });
+
+		    // console.log(balls.getBoundingClientRect());		//获取canvas的DOM信息
+			// console.log("-----",ev.changedTouches[0].clientX,ev.changedTouches[0].clientY);
+			// console.log("-----",ev.changedTouches[0].clientX,ev.changedTouches[0].clientY);	//获取单击信息
+		// 小球单击事件
+			var runBall;
+
+			balls.addEventListener('touchstart',function(ev){
+				
+				// console.log(ev.changedTouches,balls.getBoundingClientRect());
+				var x = ev.changedTouches[0].clientX+balls.getBoundingClientRect().left;
+				var y = ev.changedTouches[0].clientY+balls.getBoundingClientRect().top;
+				if(ball.isPointInPath(x, y)){
+				    //点击了矩形停止定时器
+				   
+				if(!runBall){
+				    	
+				    	clearInterval(rubberBall.timer); 
+				   		rubberBall = null;
+				   		Chick = null ;
+				   		runBall = new Run_ball(ball,balls.width/2,balls.height/1.4,1,40,balls.width,balls.height,images);
+				   		Grade.style.display='block';
+				    }else if(runBall.back_timer && runBall.Vy<0){
+	
+				    	clearInterval(runBall.back_timer);
+				    	runBall.back_timer = null ;
+				    	runBall.run(runBall.x,runBall.y,runBall.r,runBall.Sy);
+				    	runBall.num++;
+
+				    	runBall.render(runBall.num);
+				    }
+				  }
+			});
+		}	
+
+		var Grade = document.getElementById('grade');
+		var Grades = document.getElementById('grades');
+		var again = document.getElementById('again');
+
+		var Rubber_ball = function(ctx,x,y,s,r,w,h,img){
+				this.ctx = ctx ;
+				this.x = x ;
+				this.y = y ;
+				this.s = s ;
+				this.r = r ;
+				this.w = w ;
+				this.h = h ;
+				this.img = img ;
+				this.timer;
+				
+				Chick = new Chicken(ctx,w/2,h/2.2,1,1,30);	
+				this.draw();
+		}
+		Rubber_ball.prototype = {
+			ball:function(x,y,r,s){
+
+				var ctx = this.ctx;
+
+				// ctx.drawImage(images,balls.width/2,balls.height/1.4,40,40);
+				ctx.save();
+				ctx.fillStyle = 'rgba(50,100,75,0.1)';
+				ctx.translate(this.x,this.y+60+r);
+				ctx.scale(-1*s,-0.3*s);
+				for(var i=0 ; i<5 ; i++){
+					ctx.beginPath();
+					ctx.arc(0,0,r*0.5+i*4,0,Math.PI*2,false);
+					ctx.closePath();
+					ctx.fill();
+				}
+				ctx.restore();
+
+				ctx.save();
+				ctx.beginPath();
+				ctx.translate(x,y);
+				ctx.drawImage(this.img,-r,-r,2*r,2*r);
+				// var bg = ctx.createPattern(this.img,'no-repeat');
+				// ctx.fillStyle = 'rgba(100,100,100,0.2)';
+				ctx.arc(0,0,r,0,Math.PI*2,false);
+				ctx.closePath();
+				// ctx.fill();
+				ctx.restore();
+			},
+			draw:function(){
+				
+				var i = 2;
+				var c_y = this.y;
+				var me = this;
+				this.timer = setInterval(function(){
+
+					me.ctx.clearRect(0,0,me.w,me.h);
+					Chick.draw();
+					if(c_y-me.y>50){
+						i = -10
+					}
+					if(me.y - c_y > 50){
+						i = 1;
+					}
+					if(i<0){
+						i += 0.2;
+					}
+					if(i>0){
+						i += 0.7;
+					}
+
+					c_y+=i;
+					me.ball(me.x,c_y,me.r,c_y/me.y);
+					
+				},1000/30)
+			}
+			
+		}
+
+		var Run_ball = function(ctx,x,y,s,r,w,h,img){
+			this.ctx = ctx ;
+			this.x = x ;
+			this.y = y ;
+			this.s = s ;
+			this.r = r ;
+			this.w = w ;
+			this.h = h ;
+			this.Sy = y+80+r;
+			this.Vy = 0 ;
+			this.num = 0;
+			this.run_timer;
+			this.back_timer;
+			this.distance = 500;	//距离
+			this.meY = y;
+			this.img = img;
+			this.index_r = r;
+
+			Chick = new Chicken(ctx,w/2,h/2.2,1,1,30);	
+			this.run();
+			this.render(this.num);
+
+			this.speed = 30;
+		}
+		
+		Run_ball.prototype = {
+			ball:function(x,y,r,s,Sr,t){
+			
+				var ctx = this.ctx;
+				var t = t || false;
+				ctx.save();
+			
+				ctx.fillStyle = 'rgba(50,100,75,0.1)';
+				ctx.translate(x,Sr);
+				ctx.scale(1,0.3);
+				for(var i=0 ; i<5 ; i++){
+					ctx.beginPath();
+					ctx.arc(0,0,r*0.5+i*4,0,Math.PI*2,false);
+					ctx.closePath();
+					ctx.fill();
+				}
+				ctx.restore();
+
+				if(t){
+					ctx.save();
+					var lg = this.ctx.createRadialGradient(0,0,0,0,0,1.5*r);
+					lg.addColorStop(0.83,'rgba(220,220,0,0)');
+					lg.addColorStop(0.9,'rgba(220,220,0,0.4)');
+					lg.addColorStop(0.97,'rgba(220,220,0,0)');
+					ctx.fillStyle = lg;
+					ctx.beginPath();
+					ctx.translate(x,y);
+					ctx.scale(1,1);
+					ctx.arc(0,0,1.5*r,0,Math.PI*2,false);
+					ctx.arc(0,0,1*r,0,Math.PI*2,true);
+					ctx.closePath();
+					ctx.fill();
+					ctx.restore();	
+				}
+
+				ctx.save();
+
+				// ctx.fillStyle = 'rgba(100,200,150,0.8)';
+				ctx.beginPath();
+				ctx.translate(x,y);
+
+				ctx.drawImage(this.img,-r,-r,2*r,2*r);
+				ctx.scale(1,1);
+				ctx.arc(0,0,r,0,Math.PI*2,false);
+				ctx.closePath();
+				// ctx.fill();
+				ctx.restore();	
+			},
+
+			run:function(getX,getY,getR,getS){
+				/*
+				*	拍出去的方向速度为负，返回的方向速度为正，球的缩放+-速度后，不得小于0；v*Math.cos（deg）；
+				*	速度方向改变后重新定义目标值的水平位置，水平移动速度为  vx = （当前水平位置 - 目标水平位置）/	（1 - 当前缩放 ）/拍回来的速度 。。。
+				*	竖直方向的速度 vx += g； g<0;
+				*	判断派出去的方向，当前垂直方向的位置< 掉落最小值minY，速度方向改为正
+				*	判断速度方向为正时，垂直速度<0才可以点击
+				*	影子
+				*	y-v*v/2g 	上去的位置	   V/g   上去时间
+				*	var Sh = minY-(y-Vy*Vy/2/g) 下落的高度，Math.sqrt(2*(minY-y)/g) //下落的时间	h = 2gt*t
+				*/	
+
+				var me = this;
+				var v = random(30,36);		//初始速度
+				var degs = random(2.5,3.2);
+				var deg = Math.PI/degs;	//速度方向
+
+				var g = 0.5 ;	//重力加速度
+				var x = getX || me.x;		//当前位置
+				var y = getY || me.meY;		//当前位置
+				var minY = me.h*0.35 ;	//掉落最低位置
+				var Vy = v*Math.cos(deg);
+				// var 
+				function speed_up(){
+					if(y-Vy*Vy/g/2>minY){
+						Vy+=3;
+						// console.log(y,Vy,Vy*Vy/g/2,minY);
+						speed_up();
+					}
+				}
+				speed_up();
+				
+				var vz = random(me.w/4,me.w/4*3);	//左右位移范围
+				var Vz = (vz-x)/100;	// 横轴位移速度
+				var Vr = getR || me.r;	//圆半径
+				var Sy = getS || y+40+me.r;	 //影子当前位置 
+				var Sh = minY-(y-Vy*Vy/2/g);  // 下落的高度
+				// 移动时间
+				var t1 = Vy/g ;
+				var t2 = Math.sqrt(Math.abs(2*(minY-(y-Vy*Vy/2/g))/g)); //下落的时间
+
+				var Vs = (minY+40+me.r-Sy)/(t1+t2);//影子速度
+
+				var Vx = 1; //  球的半径缩放量
+				
+
+				var Chickvy = (Chick.tY - minY )*2/t2
+
+				this.run_timer = setInterval(function(){
+					me.ctx.clearRect(0,0,me.w,me.h);
+					
+					// y轴当前位置
+					Vy -= g ;
+
+					// 当前横轴坐标
+					x += Vz;
+					// 当前y轴坐标
+					y -= Vy;
+
+					// Vx =  Math.cos(Math.tan(Vy/Math.sin(deg)));
+
+					if(y<=0){Vy = 0;y = 0; }
+					//缩放速度
+					Vx-=0.5/(t1+t2);
+
+					if(Vy > 0){
+						Vr = me.index_r*Vx;
+						Chick.draw();
+					}
+					if(Vy < 0){
+						Vr = me.index_r*Vx;
+						Chickvy -= g ;
+						Chickvy = Chickvy<0? 0 : Chickvy;
+						Chick.draw(1,(vz-Chick.tX)/(t1+t2),Chickvy);
+					}
+					// 影子y轴坐标
+					Sy += Vs;
+					
+					  
+
+					me.ball(x,y,Vr,y/me.y,Sy);
+
+					// if(Vy<0 && Vr<25){
+					// 	clearInterval(me.run_timer);
+					// 	me.run_timer = null;
+					// 	me.ctx.clearRect(0,0,me.w,me.h);
+					// 	Chick.draw();
+					// 	me.ball(x,y,Vr,y/me.y,Sy);
+					// 	me.go_back(x,y,Vr);
+					// }
+
+					if(Vy<0 && y > minY){
+						// console.log(y,minY);
+						clearInterval(me.run_timer);
+						me.run_timer = null;
+						me.ctx.clearRect(0,0,me.w,me.h);
+						Chick.draw(1,(vz-Chick.tX)/(t1+t2),Chickvy);
+
+						me.ball(x,y,Vr,y/me.y,Sy);
+						me.go_back(x,y,Vr);
+					}		
+				},1000/me.speed || 1000/30);
+			},
+
+			go_back:function(getX,getY,getR){
+
+				var me = this;
+				var v = random(30,36);		//初始速度
+				var degs = random(2.2,3);
+				var deg = Math.PI/degs;	//速度方向
+				var Vy = v*Math.cos(deg);
+				// var Vx = 0; //v*Math.sin(deg)/50;	//大小缩放 --放大
+				var vz = random(me.w/4,me.w/4*3);	//左右位移范围
+				var x = getX;		//当前位置
+				var y = getY;		//当前位置
+				var Vz = (vz-x)/100;	// 横轴位移速度
+				var minY = me.h+2*this.r ;	//掉落最低位置
+				var g = 0.5 ;	//中立加速度
+				var Vr = getR;	//圆半径
+				var Sy = y+40+me.r;	 //影子当前位置 
+				var Sh = minY-(y-Vy*Vy/2/g);  // 下落的高度
+				var t1 = Vy/g ;
+				var t2 = Math.sqrt(Math.abs(2*(minY-(y-Vy*Vy/2/g))/g)); //下落的时间
+				var Vs = (minY+40-Sy)/(t1+t2);//影子速度
+
+				var Vx = 0.5; //  球的半径缩放量
+
+				this.back_timer = setInterval(function(){
+					me.ctx.clearRect(0,0,me.w,me.h);
+
+					Chick.draw(-1);
+					// y轴当前位置：
+					Vy -= g ;
+
+					// 当前横轴坐标
+					x += Vz;
+					// 当前y轴坐标
+					
+					y -= Vy;
+					if(y<=0){Vy = 0;y = 0; }
+					// 影子y轴坐标
+					Sy += Vs;
+
+					Vx+=0.5/(t1+t2);
+					//缩放速度
+					if(Vy > 0){
+						Vr = me.index_r*Vx;
+					}
+					if(Vy < 0){
+						Vr = me.index_r*Vx;
+						me.ball(x,y,Vr,y/me.meY,Sy,true);
+					}else{
+
+						me.ball(x,y,Vr,y/me.y,Sy);
+					}
+
+					// 保存当前状态
+					me.x = x;
+					me.y = y;
+					me.r = Vr;
+					me.s = y/me.meY;
+					me.Sy = Sy;
+					me.Vy = Vy;
+					if(Vy<0 && y > minY){
+						clearInterval(me.back_timer);
+						me.back_timer = null ;
+						me.ctx.clearRect(0,0,me.w,me.h);
+						Chick.draw();
+						again.style.display = 'block';
+					
+					}
+
+					
+				},1000/me.speed || 1000/30)
+			},
+			render:function(num){
+				Grade.innerHTML = num;
+				Grades.innerHTML = num;
+				if(num>10){
+					this.speed = 30+num*2;
+				}
+			},
+		}
+
+
+
+		var random = function(min,max){
+			return Math.random()*(max-min)+min;
+		}
+
+		var Chicken = function(ctx,tX,tY,scaleX,scaleY,r){
+
+			this.ctx = ctx;
+			this.tX = tX;
+			this.tY = tY;
+			this.scaleX = scaleX;
+			this.scaleY = scaleY;
+			this.r = r;
+			this.initial = tY;
+			this.down = 0;
+
+			
+		}
+
+		Chicken.prototype = {
+			shape:function(tX,tY,c){
+				var ctx = this.ctx;
+				var r = this.r;
+				ctx.fillStyle = c;
+				ctx.save();
+				ctx.translate(tX,tY);
+				ctx.beginPath();
+				Ellipse(ctx,0,0,r,r*1.2,Math.PI,0);
+				ctx.arc(0,0,r,0,Math.PI,false);
+				ctx.closePath();
+				ctx.restore();
+				ctx.fill();
+			},
+			cheek:function(tX,tY){
+				var ctx = this.ctx;
+				ctx.fillStyle = 'rgba(255,137,118,0.5)';
+
+				for(var i = 0;i<3;i++){
+					ctx.save();
+					ctx.translate(tX,tY);
+					ctx.beginPath();
+					ctx.scale(1.5, 0.6);
+					ctx.arc(0,0,1+i,0,Math.PI*2,false);
+					ctx.closePath();
+					ctx.restore();
+					ctx.fill();
+				}	
+			},
+			cap:function(tX,tY){
+				var ctx = this.ctx;
+				ctx.save();
+				ctx.translate(tX,tY);
+				ctx.beginPath();
+				ctx.fillStyle = '#e52b2c';
+				ctx.arc(0,-6,10,Math.PI*0.9,Math.PI*2,false);
+				ctx.arc(8,-3,8,0,Math.PI*2,false);
+				ctx.closePath();
+				ctx.fill();
+				ctx.restore();
+			},
+			arm:function(tX,tY,deg,s){
+				var ctx = this.ctx;
+				ctx.save();
+				ctx.translate(tX,tY);
+				ctx.rotate(deg);
+				ctx.scale(s,1);
+				ctx.beginPath();
+				ctx.fillStyle = '#f8e4e5';
+				ctx.arc(0,0,15,0,Math.PI*2);
+				ctx.closePath();
+				ctx.fill();
+				ctx.restore();
+			},
+
+			mouth:function(tX,tY){
+				var ctx = this.ctx;
+				ctx.save();
+				ctx.translate(tX,tY);
+				ctx.beginPath();
+				ctx.fillStyle = '#ffca0f';
+				ctx.strokeStyle = '#f2d316';
+				ctx.moveTo(0,-5);
+				ctx.lineTo(1,-5);
+				ctx.lineTo(4,0);
+				ctx.lineTo(4,1);
+				ctx.lineTo(1,5);
+				ctx.lineTo(0,5);
+				ctx.lineTo(-3,1);
+				ctx.lineTo(-3,0);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+
+				ctx.beginPath();
+				ctx.fillStyle = '#e3452a';
+				ctx.scale(1,0.2);
+				ctx.arc(1,0,2,0,Math.PI*2,false);
+				ctx.closePath();
+ 
+				ctx.fill();
+				ctx.stroke();
+				ctx.restore();
+			},
+			eyes:function(tX,tY,w){
+				var ctx = this.ctx;
+				ctx.save();
+				ctx.translate(tX,tY);
+				ctx.beginPath();
+				ctx.scale(0.4,0.8);
+				ctx.fillStyle = '#4d464d';
+				ctx.strokeStyle = '#000';
+				ctx.arc(0,0,5,0,Math.PI*2,false);
+				ctx.fill();
+
+				ctx.beginPath();
+				ctx.fillStyle = '#fff';
+				ctx.arc(w,-2,2,0,Math.PI*2,false);
+				ctx.closePath();
+				ctx.fill();
+				ctx.restore();
+			},
+		
+			foot:function(tX,tY){
+				var ctx = this.ctx;
+
+				ctx.save();
+				ctx.lineWidth = 3;
+				ctx.lineCap = 'round';
+				ctx.lineJoin = 'round';
+				ctx.translate(tX,tY);
+				ctx.strokeStyle = '#6e3f15';
+				ctx.beginPath();
+				ctx.moveTo(-10,0);
+				ctx.lineTo(-11,8);
+				ctx.closePath();
+				ctx.stroke();
+
+
+
+				ctx.beginPath();
+				ctx.moveTo(10,0);
+				ctx.lineTo(11,8);
+				ctx.closePath();
+				ctx.stroke();
+
+				ctx.restore();
+			},
+			shadow:function(tX,tY,r,s){
+				var ctx = this.ctx;
+				ctx.save();
+				ctx.translate(tX,tY+35);
+				ctx.fillStyle = 'rgba(50,100,75,0.1)';
+				ctx.scale(1*s,0.2*s);
+				for(var i=0 ; i<5 ; i++){
+					ctx.beginPath();
+					ctx.arc(0,0,r*0.7+i*2,0,Math.PI*2,false);
+					ctx.closePath();
+					ctx.fill();
+				}
+				ctx.restore();
+
+
+
+
+			},
+			draw:function(up_down,Vx,Vy){
+				var timers;
+				var ctx = this.ctx;
+				var me = this;
+
+				me.tX+=Vx || 0;
+				me.tY -= Vy ||0;
+
+				if(me.tY<me.initial && up_down<0){
+						me.down+=0.5;
+						me.tY+=me.down;
+						if(me.initial-me.tY<=0.5){
+							me.tY = me.initial;
+						}
+				}else{
+					me.down = 0;
+				}
+					
+
+
+				var i = 0;
+				var lg = this.ctx.createLinearGradient(this.tX,this.tY-1.2*this.r,this.tX,this.tY+this.r);
+					lg.addColorStop(0,'#fff');
+					lg.addColorStop(1,'#f8e4e5');
+
+					me.cap(me.tX,me.tY-28-i+1);	//鸡冠
+					me.shadow(me.tX,me.initial,me.r,me.tY/me.initial);
+					me.foot(me.tX,me.tY+25);
+					me.arm(me.tX-30,me.tY,Math.PI/8,0.4);	//左胳膊
+					me.arm(me.tX+30,me.tY,-Math.PI/8,0.4);	//左胳膊
+
+					me.shape(me.tX,me.tY-i+1,lg);	//身体
+					me.cheek(me.tX-12,me.tY-10-i+1);
+					me.cheek(me.tX+12,me.tY-10-i+1);
+					me.eyes(me.tX-10,me.tY-18-i+1,-2);		//左眼
+					me.eyes(me.tX+10,me.tY-18-i+1,-2);		//右眼
+					me.mouth(me.tX-1,me.tY-5-i+1);
+
+			
+			}
+		}
+		// 绘制椭圆的方法
+		function Ellipse(ctx, x, y, a, b,sDeg,eDeg) {
+		    ctx.save();
+		    var r = (a > b) ? a : b;
+		    var ratioX = a / r;
+		    var ratioY = b / r;
+		    ctx.scale(ratioX, ratioY);
+		    ctx.arc(x / ratioX, y / ratioY, r, sDeg, eDeg, false);
+		    ctx.restore();
+		}
+
+	</script>
+</body>
+</html>
